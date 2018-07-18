@@ -1,13 +1,11 @@
-// 7.17 화요일
 
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 //데이터 라인 개수
-#define MAX_DATA_NUM 220
+#define MAX_DATA_NUM 140
 //분할된 시퀀스 개수
 #define MAX_DATA_INDEX 10
 //클래스별 데이터 개수
@@ -15,7 +13,7 @@
 //전체 클래스 개수
 #define CLASS_NUM 2
 //나무 개수
-#define TREE_NUM 5
+#define TREE_NUM 1000
 //최대 데이터 값 크기
 #define MAX_VALUE_SIZE 1000
 //테스트 입력 데이터 라인 개수
@@ -43,6 +41,7 @@ struct Data{
     int data_length;
     enum CLASS* label;
     int index_length;
+    int class_length;
 };
 
 //---------------------
@@ -54,6 +53,20 @@ void test_print(struct Data dat);
 void print_labels(struct Data data);
 //---------------------
 
+int countClass(struct Data data){
+    int cnt = 0;
+    double classes[CLASS_NUM] = {0,};
+
+    for(int i =0; i < data.data_length ; i++){
+        int tp = data.label[i];
+        if(classes[tp] == 0){
+            classes[tp] = 1;
+            cnt++;
+        }
+    }
+    
+    return cnt;
+}
 
 double getProb(int data, int index, struct Data dat){
     double prob = 0;
@@ -67,13 +80,14 @@ double getProb(int data, int index, struct Data dat){
     return prob;
 }
 
-double shannonEntropy(){
+double shannonEntropy(struct Data data){
     double shannon = 0;
     for(int i = 0; i < CLASS_NUM ; i++){
-        shannon += (double)MAX_CLASS_DATA/MAX_DATA_NUM * log2((double)MAX_CLASS_DATA/MAX_DATA_NUM);
+        if(data.class_length != 0)
+            shannon += (double)data.class_length/data.data_length * log2((double)data.class_length/data.data_length);
     }
     shannon *= -1;
-
+    
     return shannon;
 }
 
@@ -109,10 +123,9 @@ struct Standards getBestStandard(struct Data dat){
     //test_print(dat);
     //===================== test print
     
-    double h = shannonEntropy();
-
+    double h = shannonEntropy(dat);
     int bestGainIndex = 0;
-    double bestGainProb = 0;
+    double bestGainProb = 1000;
     int nowIndex = 0;
     double prob = 0;
 
@@ -276,30 +289,9 @@ struct Data splitArray(struct Node* now,struct Data data, int flag){
 
     dat.label = label;
     dat.index_length = data.index_length - 1;
-
-    return dat;
-}
-
-struct Data deleteOne(struct Data data){
-    int** testData = (int**)malloc(sizeof(int*) * (data.data_length - 1) );
-    for(int i =0 ; i< (data.data_length - 1) ; i++)
-        testData[i] = (int*)malloc(sizeof(int) * (data.index_length - 1));
-        
-        for(int i =0 ; i< (data.data_length - 1) ; i++)
-            for(int k =0 ; k< (data.index_length - 1) ; k++)
-                testData[i][k] = data.input[i][k];
-                
-                enum CLASS* label = (enum CLASS*)malloc(sizeof(enum CLASS)* (data.data_length - 1) );
-                for(int i =0 ; i< (data.data_length - 1)  ; i++)
-                    label[i] = data.label[i];
-                    
-                    struct Data dat;
-    dat.input = testData;
-    dat.label = label;
-    dat.data_length = (data.data_length - 1);
-    dat.index_length = (data.index_length - 1);
+    dat.class_length = countClass(dat);
     
-    return data;
+    return dat;
 }
 
 
@@ -316,6 +308,8 @@ int* deleteOneIndex(int* data, int size,int idx){
         index++;
     }
     
+    free(data);
+    
     return testData;
 }
 
@@ -331,7 +325,6 @@ void devideData(struct Node* root, struct Data data){
             int targetIndex = now->target;
             double standard = now->standard;
             
-            
             if(row[targetIndex] > standard){
                 now = now->right;
             }
@@ -344,7 +337,6 @@ void devideData(struct Node* root, struct Data data){
         }
         
         now->retClass = data.label[i];
-        data = deleteOne(data);
     }
 
 }
@@ -369,6 +361,8 @@ void createTree(struct Node* now, struct Data data, int depth ){
     
     struct Data upper = splitArray(now,data,0);
     struct Data less = splitArray(now,data,1);
+    
+    
     //print_labels(upper);
     //print_labels(less);
 
@@ -385,10 +379,9 @@ void createTree(struct Node* now, struct Data data, int depth ){
         now->left = tp;
         createTree(now->left, less, depth + 1);
     }
-    
 }
 
-struct Data loadTrainingData(int flag){
+struct Data loadData(int flag){
     int** data;
     enum CLASS* label;
     FILE * fp;
@@ -469,7 +462,8 @@ struct Data loadTrainingData(int flag){
     dd.input = data;
     dd.label = label;
     dd.index_length = MAX_DATA_INDEX;
-
+    dd.class_length = countClass(dd);
+    
     return dd;
 }
 
@@ -477,7 +471,7 @@ int main() {
     srand(time(NULL));
     
     //입력할 학습 데이터
-    struct Data data = loadTrainingData(0);
+    struct Data data = loadData(0);
     double mean = 0;
     
     for(int k = 0; k< 10 ; k++){
@@ -494,9 +488,12 @@ int main() {
 
             //데이터 넣기로 class 분류
             devideData(&root[i],randData);
+            
         }
 
-        struct Data test_data = loadTrainingData(0);
+        printf("**** COMPLETE CREATING TREE ****");
+        
+        struct Data test_data = loadData(1);
         //int test_input_data[MAX_DATA_INDEX] = { 2 , 1 , 5 , 3 , 2 , 0};
         int correct = 0;
         for(int i = 0; i < TEST_MAX_DATA_NUM ; i++){
@@ -513,6 +510,7 @@ int main() {
     
     return 0;
 }
+
 
 
 struct Data createRandomData(struct Data data, int* random){
@@ -547,20 +545,20 @@ struct Data createTestData(){
     for(int i =0 ; i< MAX_DATA_NUM ; i++)
         testData[i] = (int*)malloc(sizeof(int) * MAX_DATA_INDEX);
 
-        int testData2[MAX_DATA_NUM][MAX_DATA_INDEX] ={  {1 , 2 , 1 , 1 , 0 , 5},{2 , 1 , 4 , 3 , 4 , 5}
-            , {3 , 1 , 4 , 3 , 2 , 6}, {2 , 1 , 4 , 2 , 3 , 3}  };
+    int testData2[MAX_DATA_NUM][MAX_DATA_INDEX] ={  {1 , 2 , 1 , 1 , 0 , 5},{2 , 1 , 4 , 3 , 4 , 5}
+        , {3 , 1 , 4 , 3 , 2 , 6}, {2 , 1 , 4 , 2 , 3 , 3}  };
 
-        for(int i =0 ; i< MAX_DATA_NUM ; i++)
-            for(int k =0 ; k< MAX_DATA_INDEX ; k++)
-                testData[i][k] = testData2[i][k];
+    for(int i =0 ; i< MAX_DATA_NUM ; i++)
+        for(int k =0 ; k< MAX_DATA_INDEX ; k++)
+            testData[i][k] = testData2[i][k];
 
-                enum CLASS label2[MAX_DATA_NUM] = { ROCK, SICCER, SICCER, ROCK };
+    enum CLASS label2[MAX_DATA_NUM] = { ROCK, SICCER, SICCER, ROCK };
 
-                enum CLASS* label = (enum CLASS*)malloc(sizeof(enum CLASS)* MAX_DATA_NUM);
-                for(int i =0 ; i< MAX_DATA_NUM ; i++)
-                    label[i] = label2[i];
+    enum CLASS* label = (enum CLASS*)malloc(sizeof(enum CLASS)* MAX_DATA_NUM);
+    for(int i =0 ; i< MAX_DATA_NUM ; i++)
+        label[i] = label2[i];
 
-                    struct Data data;
+    struct Data data;
     data.input = testData;
     data.label = label;
     data.data_length = MAX_DATA_NUM;
