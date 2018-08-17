@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
-
+//130 - 500 최적
 //데이터 라인 개수
-#define MAX_DATA_NUM 140
+#define MAX_DATA_NUM 130
 //분할된 시퀀스 개수
 #define MAX_DATA_INDEX 10
 //클래스별 데이터 개수
@@ -13,7 +13,7 @@
 //전체 클래스 개수
 #define CLASS_NUM 2
 //나무 개수
-#define TREE_NUM 1000
+#define TREE_NUM 500
 //최대 데이터 값 크기
 #define MAX_VALUE_SIZE 1000
 //테스트 입력 데이터 라인 개수
@@ -47,10 +47,10 @@ struct Data{
 //---------------------
 int testClassification(int test[], struct Node root);
 struct Data createRandomData(struct Data data, int* random);
-struct Data createTestData(void);
 int testClassification_rf(int* input_data, struct Node root[TREE_NUM] , int random[TREE_NUM][MAX_DATA_INDEX / 2] );
 void test_print(struct Data dat);
 void print_labels(struct Data data);
+void freeMem(struct Data* data);
 //---------------------
 
 int countClass(struct Data data){
@@ -362,7 +362,9 @@ void createTree(struct Node* now, struct Data data, int depth ){
     struct Data upper = splitArray(now,data,0);
     struct Data less = splitArray(now,data,1);
     
-    
+//    for(int i = 0; i< data.data_length ; i++)
+//        free(data.input[i]);
+//    free(data.input);
     //print_labels(upper);
     //print_labels(less);
 
@@ -469,7 +471,6 @@ struct Data loadData(int flag){
 
 int main() {
     srand(time(NULL));
-    
     //입력할 학습 데이터
     struct Data data = loadData(0);
     double mean = 0;
@@ -485,12 +486,12 @@ int main() {
 
             //트리 생성
             createTree(&root[i], randData, 0);
-
+            
             //데이터 넣기로 class 분류
             devideData(&root[i],randData);
             
         }
-
+        
         printf("**** COMPLETE CREATING TREE ****");
         
         struct Data test_data = loadData(1);
@@ -538,35 +539,6 @@ struct Data createRandomData(struct Data data, int* random){
     
     return dat;
 }
-
-struct Data createTestData(){
-
-    int** testData = (int**)malloc(sizeof(int*) * MAX_DATA_NUM);
-    for(int i =0 ; i< MAX_DATA_NUM ; i++)
-        testData[i] = (int*)malloc(sizeof(int) * MAX_DATA_INDEX);
-
-    int testData2[MAX_DATA_NUM][MAX_DATA_INDEX] ={  {1 , 2 , 1 , 1 , 0 , 5},{2 , 1 , 4 , 3 , 4 , 5}
-        , {3 , 1 , 4 , 3 , 2 , 6}, {2 , 1 , 4 , 2 , 3 , 3}  };
-
-    for(int i =0 ; i< MAX_DATA_NUM ; i++)
-        for(int k =0 ; k< MAX_DATA_INDEX ; k++)
-            testData[i][k] = testData2[i][k];
-
-    enum CLASS label2[MAX_DATA_NUM] = { ROCK, SICCER, SICCER, ROCK };
-
-    enum CLASS* label = (enum CLASS*)malloc(sizeof(enum CLASS)* MAX_DATA_NUM);
-    for(int i =0 ; i< MAX_DATA_NUM ; i++)
-        label[i] = label2[i];
-
-    struct Data data;
-    data.input = testData;
-    data.label = label;
-    data.data_length = MAX_DATA_NUM;
-    data.index_length = MAX_DATA_INDEX;
-
-    return data;
-}
-
 
 
 int* splitData(int* input, int random[MAX_DATA_INDEX / 2]){
@@ -619,7 +591,13 @@ int testClassification_rf(int* input_data, struct Node root[TREE_NUM] , int rand
     return bestIndex;
 }
 
-
+void freeMem(struct Data* data){
+    
+    for(int i = 0; i< data->data_length ; i++)
+        free(data->input[i]);
+    free(data->input);
+    
+}
 
 void test_print(struct Data dat){
     for(int i = 0; i<dat.data_length ; i ++){
